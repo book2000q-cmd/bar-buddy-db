@@ -1,4 +1,4 @@
-import { Home, Scan, Database, BarChart3, Settings } from "lucide-react";
+import { Home, ShoppingCart, Database, BarChart3, Settings } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -7,7 +7,7 @@ const BottomNav = () => {
 
   const navItems = [
     { path: "/", icon: Home, label: "หน้าหลัก" },
-    { path: "/scan", icon: Scan, label: "สแกน" },
+    { path: "/sale", icon: ShoppingCart, label: "ขาย" },
     { path: "/products", icon: Database, label: "สินค้า" },
     { path: "/analytics", icon: BarChart3, label: "สถิติ" },
     { path: "/settings", icon: Settings, label: "ตั้งค่า" },

@@ -25,13 +25,22 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
           return;
         }
 
-        const selectedDeviceId = videoInputDevices[0].deviceId;
+        // Find back camera (environment facing)
+        const backCamera = videoInputDevices.find(device => 
+          device.label.toLowerCase().includes('back') || 
+          device.label.toLowerCase().includes('environment')
+        ) || videoInputDevices[videoInputDevices.length - 1]; // Fallback to last camera (usually back)
+
+        const selectedDeviceId = backCamera.deviceId;
 
         codeReader.decodeFromVideoDevice(
           selectedDeviceId,
           videoRef.current!,
           (result, err) => {
             if (result && isScanning) {
+              // Play scan sound
+              const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGe58OagSwgOUKzn7bllHAbzd8z0+5RGCE6r5O+5YxUHcazl68hmGQU7j9Hy0XosBS6AzPDdjTwJEWS56umjSwoOTqrl8bZkGgczhsvy03YrBS1+yvDdkDwIE2O48OijSQkOUKrk8LhjHAY1iM7y0HcrBS1+yvDekTsID2O56+qhSwgNUKvm8bhlHQY1iMzy0XYqBS1+yvDekToID2S56+mhSwgMUKvm8bhlHQY1iM3y0HYrBS1/y/DdkDoID2O56+qiSwkNUKrm8bhlHQY1iM3y0HYrBS1/y/DdkDoID2O56+qiSwgMUKvm8bhlHAYzh8vy0nksBS6Ay/DdjjsIEWS56+mjSwkOTqrl8bZkGgczhsvy0nksBS6Ay/DdjjsIEWS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEWS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGg==');
+              audio.play().catch(() => {}); // Ignore errors if audio fails
               onScan(result.getText());
               setIsScanning(false);
             }
