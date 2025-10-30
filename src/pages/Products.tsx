@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Package, Camera } from "lucide-react";
+import { Camera, Search, Package } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BottomNav from "@/components/BottomNav";
 import BarcodeScanner from "@/components/BarcodeScanner";
+import BarcodeConfirmDialog from "@/components/BarcodeConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -24,7 +26,12 @@ const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
   const [isScanning, setIsScanning] = useState(false);
+  const [scannedBarcode, setScannedBarcode] = useState("");
+  const [showBarcodeDialog, setShowBarcodeDialog] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("ทั้งหมด");
   const navigate = useNavigate();
+
+  const categories = ["ทั้งหมด", "อาหาร", "เครื่องดื่ม", "ขนม", "อื่นๆ"];
 
   useEffect(() => {
     fetchProducts();
@@ -41,21 +48,34 @@ const Products = () => {
     }
   };
 
-  const filteredProducts = products.filter(
-    (p) =>
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.barcode.includes(search) ||
-      (p.category && p.category.toLowerCase().includes(search.toLowerCase()))
-  );
+      (p.category && p.category.toLowerCase().includes(search.toLowerCase()));
+    
+    const matchesCategory = 
+      selectedCategory === "ทั้งหมด" || 
+      p.category === selectedCategory ||
+      (selectedCategory === "อื่นๆ" && (!p.category || !categories.includes(p.category)));
+    
+    return matchesSearch && matchesCategory;
+  });
 
-  const handleScan = async (barcode: string) => {
+  const handleScan = (barcode: string) => {
     setIsScanning(false);
+    setScannedBarcode(barcode);
+    setShowBarcodeDialog(true);
+  };
+
+  const handleBarcodeConfirm = async (confirmedBarcode: string) => {
+    setShowBarcodeDialog(false);
     
     // Check if product exists
     const { data: product } = await supabase
       .from("products")
       .select("*")
-      .eq("barcode", barcode)
+      .eq("barcode", confirmedBarcode)
       .maybeSingle();
 
     if (product) {
@@ -63,8 +83,13 @@ const Products = () => {
       navigate(`/product/${product.id}`);
     } else {
       toast.info("ไม่พบสินค้า กรุณาเพิ่มสินค้าใหม่");
-      navigate(`/product/new?barcode=${barcode}`);
+      navigate(`/product/new?barcode=${confirmedBarcode}`);
     }
+  };
+
+  const handleBarcodeCancel = () => {
+    setShowBarcodeDialog(false);
+    setScannedBarcode("");
   };
 
   return (
@@ -100,6 +125,16 @@ const Products = () => {
                 <Camera className="h-5 w-5" />
               </Button>
             </div>
+
+            <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
+              <TabsList className="w-full justify-start overflow-x-auto flex-nowrap">
+                {categories.map((category) => (
+                  <TabsTrigger key={category} value={category} className="flex-shrink-0">
+                    {category}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
 
             {filteredProducts.length === 0 ? (
               <div className="text-center py-12">
@@ -162,6 +197,13 @@ const Products = () => {
           </>
         )}
       </main>
+
+      <BarcodeConfirmDialog
+        open={showBarcodeDialog}
+        barcode={scannedBarcode}
+        onConfirm={handleBarcodeConfirm}
+        onCancel={handleBarcodeCancel}
+      />
 
       <BottomNav />
     </div>
