@@ -81,13 +81,53 @@ const Sale = () => {
       return;
     }
 
-    // Here you could add logic to:
-    // 1. Update stock quantities
-    // 2. Save transaction to database
-    // 3. Generate receipt
-    
-    toast.success(`ขายสำเร็จ! ยอดรวม ฿${calculateTotal().toFixed(2)}`);
-    setCart([]);
+    try {
+      // Update stock quantities for each item
+      for (const item of cart) {
+        const { data: product } = await supabase
+          .from("products")
+          .select("stock_quantity")
+          .eq("id", item.id)
+          .single();
+
+        if (product) {
+          const newStock = product.stock_quantity - item.quantity;
+          if (newStock < 0) {
+            toast.error(`${item.name} มีสต็อกไม่เพียงพอ`);
+            return;
+          }
+
+          const { error } = await supabase
+            .from("products")
+            .update({ stock_quantity: newStock })
+            .eq("id", item.id);
+
+          if (error) {
+            toast.error("เกิดข้อผิดพลาดในการอัพเดทสต็อก");
+            return;
+          }
+        }
+      }
+
+      // Save transaction to database
+      const { error: transactionError } = await supabase
+        .from("transactions")
+        .insert([{
+          total_amount: calculateTotal(),
+          items: cart as any
+        }]);
+
+      if (transactionError) {
+        toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูลการขาย");
+        return;
+      }
+
+      toast.success(`ขายสำเร็จ! ยอดรวม ฿${calculateTotal().toFixed(2)}`);
+      setCart([]);
+    } catch (error) {
+      toast.error("เกิดข้อผิดพลาด");
+      console.error(error);
+    }
   };
 
   return (
