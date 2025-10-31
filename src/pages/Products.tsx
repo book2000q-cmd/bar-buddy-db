@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BottomNav from "@/components/BottomNav";
 import BarcodeScanner from "@/components/BarcodeScanner";
-import BarcodeConfirmDialog from "@/components/BarcodeConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -26,8 +25,6 @@ const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
   const [isScanning, setIsScanning] = useState(false);
-  const [scannedBarcode, setScannedBarcode] = useState("");
-  const [showBarcodeDialog, setShowBarcodeDialog] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("ทั้งหมด");
   const navigate = useNavigate();
 
@@ -62,20 +59,14 @@ const Products = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const handleScan = (barcode: string) => {
+  const handleScan = async (barcode: string) => {
     setIsScanning(false);
-    setScannedBarcode(barcode);
-    setShowBarcodeDialog(true);
-  };
-
-  const handleBarcodeConfirm = async (confirmedBarcode: string) => {
-    setShowBarcodeDialog(false);
     
     // Check if product exists
     const { data: product } = await supabase
       .from("products")
       .select("*")
-      .eq("barcode", confirmedBarcode)
+      .eq("barcode", barcode)
       .maybeSingle();
 
     if (product) {
@@ -83,20 +74,15 @@ const Products = () => {
       navigate(`/product/${product.id}`);
     } else {
       toast.info("ไม่พบสินค้า กรุณาเพิ่มสินค้าใหม่");
-      navigate(`/product/new?barcode=${confirmedBarcode}`);
+      navigate(`/product/new?barcode=${barcode}`);
     }
   };
 
-  const handleBarcodeCancel = () => {
-    setShowBarcodeDialog(false);
-    setScannedBarcode("");
-  };
-
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <header className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-6 rounded-b-3xl shadow-md">
+    <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-background pb-20 animate-fade-in">
+      <header className="bg-gradient-to-r from-accent via-primary to-accent text-primary-foreground p-6 rounded-b-3xl shadow-lg shadow-accent/20 animate-slide-up">
         <h1 className="text-2xl font-bold mb-1">รายการสินค้า</h1>
-        <p className="text-primary-foreground/80 text-sm">จัดการและค้นหาสินค้า</p>
+        <p className="text-primary-foreground/90 text-sm">จัดการและค้นหาสินค้า</p>
       </header>
 
       <main className="p-4 space-y-4">
@@ -120,7 +106,7 @@ const Products = () => {
               <Button
                 size="icon"
                 onClick={() => setIsScanning(true)}
-                className="bg-gradient-to-r from-secondary to-secondary/80"
+                className="bg-gradient-to-r from-accent via-secondary to-accent hover:shadow-lg hover:shadow-accent/30 transition-all hover:scale-110 animate-scale-in"
               >
                 <Camera className="h-5 w-5" />
               </Button>
@@ -142,7 +128,7 @@ const Products = () => {
                 <p className="text-muted-foreground mb-4">
                   {search ? "ไม่พบสินค้าที่ค้นหา" : "ยังไม่มีสินค้าในระบบ"}
                 </p>
-                <Button onClick={() => setIsScanning(true)}>
+                <Button onClick={() => setIsScanning(true)} className="bg-gradient-to-r from-accent to-accent/90 hover:shadow-lg hover:shadow-accent/30 transition-all hover:scale-105">
                   <Camera className="mr-2 h-4 w-4" />
                   สแกนเพื่อเพิ่มสินค้า
                 </Button>
@@ -152,7 +138,7 @@ const Products = () => {
                 {filteredProducts.map((product) => (
                   <Card
                     key={product.id}
-                    className="cursor-pointer hover:shadow-lg transition-shadow border-none"
+                    className="cursor-pointer hover:shadow-xl hover:shadow-primary/20 transition-all hover:scale-[1.02] border border-border/50 animate-fade-in"
                     onClick={() => navigate(`/product/${product.id}`)}
                   >
                     <CardContent className="p-4">
@@ -197,13 +183,6 @@ const Products = () => {
           </>
         )}
       </main>
-
-      <BarcodeConfirmDialog
-        open={showBarcodeDialog}
-        barcode={scannedBarcode}
-        onConfirm={handleBarcodeConfirm}
-        onCancel={handleBarcodeCancel}
-      />
 
       <BottomNav />
     </div>

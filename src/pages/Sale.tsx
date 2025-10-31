@@ -131,10 +131,10 @@ const Sale = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <header className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-6 rounded-b-3xl shadow-md">
+    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/5 to-background pb-20 animate-fade-in">
+      <header className="bg-gradient-to-r from-primary via-secondary to-primary text-primary-foreground p-6 rounded-b-3xl shadow-lg shadow-primary/20 animate-slide-up">
         <h1 className="text-2xl font-bold mb-1">ขายสินค้า</h1>
-        <p className="text-primary-foreground/80 text-sm">สแกนบาร์โค้ดเพื่อเพิ่มสินค้า</p>
+        <p className="text-primary-foreground/90 text-sm">สแกนบาร์โค้ดเพื่อเพิ่มสินค้า</p>
       </header>
 
       <main className="p-4 space-y-4">
@@ -143,7 +143,7 @@ const Sale = () => {
             <Button
               size="lg"
               onClick={() => setIsScanning(true)}
-              className="w-full bg-gradient-to-r from-primary to-primary/80"
+              className="w-full bg-gradient-to-r from-primary via-secondary to-primary hover:shadow-lg hover:shadow-primary/30 transition-all hover:scale-105 animate-scale-in"
             >
               <Camera className="mr-2 h-5 w-5" />
               สแกนบาร์โค้ด
@@ -197,17 +197,17 @@ const Sale = () => {
                   ))}
                 </div>
 
-                <Card className="p-4 bg-primary/5">
+                <Card className="p-4 bg-gradient-to-r from-primary/10 via-secondary/5 to-accent/10 border-2 border-primary/20 shadow-lg animate-scale-in">
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-lg font-semibold">ยอดรวมทั้งหมด</span>
-                    <span className="text-2xl font-bold text-primary">
+                    <span className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
                       ฿{calculateTotal().toFixed(2)}
                     </span>
                   </div>
                   <Button
                     size="lg"
                     onClick={handleCheckout}
-                    className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600"
+                    className="w-full bg-gradient-to-r from-secondary via-secondary/90 to-secondary/80 hover:shadow-xl hover:shadow-secondary/30 transition-all hover:scale-105"
                   >
                     ชำระเงิน
                   </Button>

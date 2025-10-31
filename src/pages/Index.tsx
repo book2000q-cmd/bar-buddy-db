@@ -9,27 +9,27 @@ const Index = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-background pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/10 via-secondary/5 to-accent/5 pb-20 animate-fade-in">
       <main className="flex flex-col items-center justify-center min-h-[85vh] p-6 space-y-8">
         {/* Logos Section */}
-        <div className="flex items-center justify-center gap-6 mb-8">
-          <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden shadow-2xl border-4 border-primary/20 hover:scale-105 transition-transform">
+        <div className="flex items-center justify-center gap-6 mb-8 animate-slide-up">
+          <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden shadow-2xl border-4 border-primary/30 hover:scale-110 hover:rotate-6 transition-all duration-300 hover:shadow-primary/50">
             <img src={collegeLogo} alt="Wangnamyen Technical College" className="w-full h-full object-cover" />
           </div>
-          <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden shadow-2xl border-4 border-primary/20 hover:scale-105 transition-transform">
+          <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden shadow-2xl border-4 border-secondary/30 hover:scale-110 hover:-rotate-6 transition-all duration-300 hover:shadow-secondary/50">
             <img src={itLogo} alt="Information Technology" className="w-full h-full object-cover" />
           </div>
         </div>
 
         {/* Title Section */}
-        <div className="text-center space-y-3 max-w-2xl">
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
+        <div className="text-center space-y-3 max-w-2xl animate-scale-in">
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground drop-shadow-lg">
             ระบบบริหารจัดการ
           </h1>
-          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent animate-shimmer">
             ร้านขายของชำ
           </h2>
-          <p className="text-muted-foreground mt-4">
+          <p className="text-muted-foreground mt-4 text-lg">
             วิทยาลัยเทคนิควังน้ำเย็น
           </p>
         </div>
@@ -38,7 +38,7 @@ const Index = () => {
         <Button 
           onClick={() => navigate("/sale")}
           size="lg"
-          className="w-full max-w-md h-14 text-lg bg-gradient-to-r from-primary via-primary/90 to-primary/80 hover:shadow-xl transition-all transform hover:scale-105"
+          className="w-full max-w-md h-16 text-lg font-semibold bg-gradient-to-r from-primary via-secondary to-accent hover:shadow-2xl hover:shadow-primary/30 transition-all transform hover:scale-105 animate-slide-up"
         >
           <Store className="mr-3 h-6 w-6" />
           เข้าใช้งาน ระบบบริหารจัดการร้านขายของชำ
