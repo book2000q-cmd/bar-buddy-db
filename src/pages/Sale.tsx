@@ -84,19 +84,13 @@ const Sale = () => {
     try {
       // Update stock quantities for each item
       for (const item of cart) {
-        console.log('Processing item:', item);
-        
         const { data: product, error: fetchError } = await supabase
           .from("products")
           .select("stock_quantity")
           .eq("id", item.id)
           .maybeSingle();
 
-        console.log('Product data:', product);
-        console.log('Fetch error:', fetchError);
-
         if (fetchError) {
-          console.error('Error fetching product:', fetchError);
           toast.error(`เกิดข้อผิดพลาดในการดึงข้อมูลสินค้า: ${item.name}`);
           return;
         }
@@ -107,7 +101,6 @@ const Sale = () => {
         }
 
         const newStock = product.stock_quantity - item.quantity;
-        console.log('New stock will be:', newStock);
         
         if (newStock < 0) {
           toast.error(`${item.name} มีสต็อกไม่เพียงพอ (เหลือ ${product.stock_quantity} ชิ้น)`);
@@ -119,10 +112,7 @@ const Sale = () => {
           .update({ stock_quantity: newStock })
           .eq("id", item.id);
 
-        console.log('Update error:', updateError);
-
         if (updateError) {
-          console.error('Error updating product:', updateError);
           toast.error(`เกิดข้อผิดพลาดในการอัพเดทสต็อก: ${item.name}`);
           return;
         }
@@ -137,15 +127,13 @@ const Sale = () => {
         }]);
 
       if (transactionError) {
-        console.error('Transaction error:', transactionError);
         toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูลการขาย");
         return;
       }
 
-      toast.success(`ขายสำเร็จ! ยอดรวม ฿${calculateTotal().toFixed(2)}`);
+      toast.success(`✅ ขายสำเร็จ! ยอดรวม ฿${calculateTotal().toFixed(2)}`);
       setCart([]);
     } catch (error) {
-      console.error('Checkout error:', error);
       toast.error("เกิดข้อผิดพลาด");
     }
   };
