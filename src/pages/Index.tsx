@@ -14,7 +14,7 @@ const Index = () => {
         {/* Logos Section */}
         <div className="flex items-center justify-center gap-6 mb-8 animate-slide-up">
           <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden shadow-2xl border-4 border-primary/30 hover:scale-110 hover:rotate-6 transition-all duration-300 hover:shadow-primary/50 bg-white">
-            <img src={collegeLogo} alt="Wangnamyen Technical College" className="w-full h-full object-cover object-center scale-125" />
+            <img src={collegeLogo} alt="Wangnamyen Technical College" className="w-full h-full object-cover scale-[1.20] translate-y-1" style={{ objectPosition: 'center 55%' }} />
           </div>
           <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden shadow-2xl border-4 border-secondary/30 hover:scale-110 hover:-rotate-6 transition-all duration-300 hover:shadow-secondary/50">
             <img src={itLogo} alt="Information Technology" className="w-full h-full object-cover object-center" />
