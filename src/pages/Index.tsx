@@ -1,12 +1,29 @@
-import { useNavigate } from "react-router-dom";
-import { Store } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import BottomNav from "@/components/BottomNav";
-import itLogo from "@/assets/it-logo.png";
-import collegeLogo from "@/assets/college-logo.png";
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { LogIn } from 'lucide-react';
+import collegeLogo from '@/assets/college-logo.png';
+import itLogo from '@/assets/it-logo.png';
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    // Redirect to products page if already logged in
+    if (user && !loading) {
+      navigate('/products');
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/10 via-secondary/5 to-accent/5 pb-20 animate-fade-in">
@@ -34,18 +51,16 @@ const Index = () => {
           </p>
         </div>
 
-        {/* Main Button */}
+        {/* Login Button */}
         <Button 
-          onClick={() => navigate("/sale")}
+          onClick={() => navigate('/auth')}
           size="lg"
           className="w-full max-w-md h-16 text-lg font-semibold bg-gradient-to-r from-primary via-secondary to-accent hover:shadow-2xl hover:shadow-primary/30 transition-all transform hover:scale-105 animate-slide-up"
         >
-          <Store className="mr-3 h-6 w-6" />
-          เข้าใช้งาน ระบบบริหารจัดการร้านขายของชำ
+          <LogIn className="mr-3 h-6 w-6" />
+          เข้าสู่ระบบ
         </Button>
       </main>
-
-      <BottomNav />
     </div>
   );
 };

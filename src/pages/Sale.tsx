@@ -7,14 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Camera, Trash2, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-interface SaleItem {
-  id: string;
-  barcode: string;
-  name: string;
-  price: number;
-  quantity: number;
-}
+import { transactionSchema, type SaleItem } from "@/lib/validations";
 
 const Sale = () => {
   const [isScanning, setIsScanning] = useState(false);
@@ -63,7 +56,7 @@ const Sale = () => {
   const updateQuantity = (barcode: string, change: number) => {
     const newCart = cart.map(item => {
       if (item.barcode === barcode) {
-        const newQuantity = Math.max(1, item.quantity + change);
+        const newQuantity = Math.max(1, Math.min(1000, item.quantity + change));
         return { ...item, quantity: newQuantity };
       }
       return item;
@@ -82,8 +75,16 @@ const Sale = () => {
     }
 
     try {
+      // Validate transaction data
+      const transactionData = {
+        total_amount: calculateTotal(),
+        items: cart
+      };
+
+      const validatedTransaction = transactionSchema.parse(transactionData);
+
       // Update stock quantities for each item
-      for (const item of cart) {
+      for (const item of validatedTransaction.items) {
         const { data: product, error: fetchError } = await supabase
           .from("products")
           .select("stock_quantity")
@@ -91,7 +92,8 @@ const Sale = () => {
           .maybeSingle();
 
         if (fetchError) {
-          toast.error(`เกิดข้อผิดพลาดในการดึงข้อมูลสินค้า: ${item.name}`);
+          console.error('Fetch error:', fetchError);
+          toast.error(`เกิดข้อผิดพลาดในการดึงข้อมูลสินค้า`);
           return;
         }
 
@@ -113,7 +115,8 @@ const Sale = () => {
           .eq("id", item.id);
 
         if (updateError) {
-          toast.error(`เกิดข้อผิดพลาดในการอัพเดทสต็อก: ${item.name}`);
+          console.error('Update error:', updateError);
+          toast.error(`เกิดข้อผิดพลาดในการอัพเดทสต็อก`);
           return;
         }
       }
@@ -122,19 +125,27 @@ const Sale = () => {
       const { error: transactionError } = await supabase
         .from("transactions")
         .insert([{
-          total_amount: calculateTotal(),
-          items: cart as any
+          total_amount: validatedTransaction.total_amount,
+          items: validatedTransaction.items as any
         }]);
 
       if (transactionError) {
+        console.error('Transaction error:', transactionError);
         toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูลการขาย");
         return;
       }
 
-      toast.success(`✅ ขายสำเร็จ! ยอดรวม ฿${calculateTotal().toFixed(2)}`);
+      toast.success(`✅ ขายสำเร็จ! ยอดรวม ฿${validatedTransaction.total_amount.toFixed(2)}`);
       setCart([]);
-    } catch (error) {
-      toast.error("เกิดข้อผิดพลาด");
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      if (error.errors) {
+        error.errors.forEach((err: any) => {
+          toast.error(err.message);
+        });
+      } else {
+        toast.error("เกิดข้อผิดพลาด");
+      }
     }
   };
 

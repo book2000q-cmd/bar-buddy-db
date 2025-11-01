@@ -9,11 +9,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { productSchema } from "@/lib/validations";
+import { useAuth } from "@/hooks/useAuth";
 
 const ProductDetail = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
   const isNew = id === "new";
   const barcodeParam = searchParams.get("barcode");
 
@@ -54,54 +57,85 @@ const ProductDetail = () => {
   };
 
   const handleSave = async () => {
-    if (!formData.barcode || !formData.name) {
-      toast.error("กรุณากรอกบาร์โค้ดและชื่อสินค้า");
-      return;
-    }
+    try {
+      // Prepare data for validation
+      const dataToValidate = {
+        barcode: formData.barcode,
+        name: formData.name,
+        description: formData.description || null,
+        price: formData.price ? parseFloat(formData.price) : 0,
+        stock_quantity: parseInt(formData.stock_quantity) || 0,
+        category: formData.category || null,
+        image_url: formData.image_url || null,
+      };
 
-    const productData = {
-      barcode: formData.barcode,
-      name: formData.name,
-      description: formData.description || null,
-      price: formData.price ? parseFloat(formData.price) : null,
-      stock_quantity: parseInt(formData.stock_quantity) || 0,
-      category: formData.category || null,
-      image_url: formData.image_url || null,
-    };
+      // Validate with Zod
+      const validatedData = productSchema.parse(dataToValidate);
 
-    if (isNew) {
-      const { error } = await supabase.from("products").insert([productData]);
-      if (error) {
-        toast.error("ไม่สามารถเพิ่มสินค้าได้");
-        return;
+      // Prepare final data for database
+      const dbData = {
+        barcode: validatedData.barcode,
+        name: validatedData.name,
+        description: validatedData.description,
+        price: validatedData.price,
+        stock_quantity: validatedData.stock_quantity,
+        category: validatedData.category,
+        image_url: validatedData.image_url,
+      };
+
+      if (isNew) {
+        const { error } = await supabase.from("products").insert([dbData]);
+        if (error) {
+          console.error('Insert error:', error);
+          toast.error("ไม่สามารถเพิ่มสินค้าได้");
+          return;
+        }
+        toast.success("เพิ่มสินค้าสำเร็จ");
+      } else {
+        const { error } = await supabase
+          .from("products")
+          .update(dbData)
+          .eq("id", id);
+        if (error) {
+          console.error('Update error:', error);
+          toast.error("ไม่สามารถบันทึกข้อมูลได้");
+          return;
+        }
+        toast.success("บันทึกข้อมูลสำเร็จ");
       }
-      toast.success("เพิ่มสินค้าสำเร็จ");
-    } else {
-      const { error } = await supabase
-        .from("products")
-        .update(productData)
-        .eq("id", id);
-      if (error) {
-        toast.error("ไม่สามารถบันทึกข้อมูลได้");
-        return;
-      }
-      toast.success("บันทึกข้อมูลสำเร็จ");
-    }
 
-    navigate("/products");
+      navigate("/products");
+    } catch (error: any) {
+      // Handle validation errors
+      if (error.errors) {
+        error.errors.forEach((err: any) => {
+          toast.error(err.message);
+        });
+      } else {
+        toast.error("ข้อมูลไม่ถูกต้อง");
+      }
+    }
   };
 
   const handleDelete = async () => {
+    if (!hasRole('admin')) {
+      toast.error("คุณไม่มีสิทธิ์ลบสินค้า");
+      return;
+    }
+
     if (!window.confirm("ต้องการลบสินค้านี้ใช่หรือไม่?")) return;
 
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) {
+      console.error('Delete error:', error);
       toast.error("ไม่สามารถลบสินค้าได้");
       return;
     }
     toast.success("ลบสินค้าสำเร็จ");
     navigate("/products");
   };
+
+  const canModify = hasRole('admin') || hasRole('staff');
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -147,6 +181,8 @@ const ProductDetail = () => {
                   setFormData({ ...formData, barcode: e.target.value })
                 }
                 placeholder="1234567890123"
+                disabled={!canModify}
+                maxLength={50}
               />
             </div>
 
@@ -159,6 +195,8 @@ const ProductDetail = () => {
                   setFormData({ ...formData, name: e.target.value })
                 }
                 placeholder="ชื่อสินค้า"
+                disabled={!canModify}
+                maxLength={200}
               />
             </div>
 
@@ -171,6 +209,8 @@ const ProductDetail = () => {
                   setFormData({ ...formData, category: e.target.value })
                 }
                 placeholder="อิเล็กทรอนิกส์, อาหาร, เครื่องดื่ม"
+                disabled={!canModify}
+                maxLength={100}
               />
             </div>
 
@@ -184,6 +224,8 @@ const ProductDetail = () => {
                 }
                 placeholder="รายละเอียดสินค้า"
                 rows={3}
+                disabled={!canModify}
+                maxLength={1000}
               />
             </div>
 
@@ -198,6 +240,10 @@ const ProductDetail = () => {
                     setFormData({ ...formData, price: e.target.value })
                   }
                   placeholder="0.00"
+                  disabled={!canModify}
+                  min="0"
+                  max="1000000"
+                  step="0.01"
                 />
               </div>
 
@@ -211,6 +257,9 @@ const ProductDetail = () => {
                     setFormData({ ...formData, stock_quantity: e.target.value })
                   }
                   placeholder="0"
+                  disabled={!canModify}
+                  min="0"
+                  max="100000"
                 />
               </div>
             </div>
@@ -224,25 +273,29 @@ const ProductDetail = () => {
                   setFormData({ ...formData, image_url: e.target.value })
                 }
                 placeholder="https://example.com/image.jpg"
+                disabled={!canModify}
+                maxLength={500}
               />
             </div>
           </CardContent>
         </Card>
 
-        <div className="flex gap-3">
-          <Button
-            className="flex-1 bg-gradient-to-r from-secondary to-secondary/80"
-            onClick={handleSave}
-          >
-            <Save className="mr-2 h-4 w-4" />
-            บันทึก
-          </Button>
-          {!isNew && (
-            <Button variant="destructive" onClick={handleDelete}>
-              <Trash2 className="h-4 w-4" />
+        {canModify && (
+          <div className="flex gap-3">
+            <Button
+              className="flex-1 bg-gradient-to-r from-secondary to-secondary/80"
+              onClick={handleSave}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              บันทึก
             </Button>
-          )}
-        </div>
+            {!isNew && hasRole('admin') && (
+              <Button variant="destructive" onClick={handleDelete}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        )}
       </main>
 
       <BottomNav />
