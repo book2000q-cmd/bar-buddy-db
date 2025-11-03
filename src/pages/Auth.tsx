@@ -55,7 +55,7 @@ const Auth = () => {
         <CardHeader className="space-y-4 flex flex-col items-center">
           <div className="flex justify-center items-center">
             <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border-2 border-primary/30">
-              <img src={collegeLogo} alt="Logo" className="w-full h-full object-cover" />
+              <img src={collegeLogo} alt="Logo" className="w-full h-full object-cover object-center" />
             </div>
           </div>
           <CardTitle className="text-2xl text-center">ระบบจัดการสต็อก</CardTitle>
