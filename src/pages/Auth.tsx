@@ -52,8 +52,8 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-4">
-          <div className="flex justify-center">
+        <CardHeader className="space-y-4 flex flex-col items-center">
+          <div className="flex justify-center items-center">
             <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border-2 border-primary/30">
               <img src={collegeLogo} alt="Logo" className="w-full h-full object-cover" />
             </div>
