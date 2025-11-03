@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import BottomNav from "@/components/BottomNav";
-import { User, Database, Info, LogOut } from "lucide-react";
+import { User, Database, Info, LogOut, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
 const Settings = () => {
-  const { user, signOut, roles } = useAuth();
+  const { user, signOut, roles, hasRole } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -56,6 +58,23 @@ const Settings = () => {
             </div>
           </div>
         </Card>
+
+        {hasRole('admin') && (
+          <Card 
+            className="p-4 cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => navigate('/user-management')}
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-purple-500/10 rounded-full">
+                <Users className="h-6 w-6 text-purple-500" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold">จัดการผู้ใช้และสิทธิ์</h3>
+                <p className="text-sm text-muted-foreground">เพิ่มหรือลบสิทธิ์ผู้ใช้</p>
+              </div>
+            </div>
+          </Card>
+        )}
 
         <Button 
           onClick={signOut}
