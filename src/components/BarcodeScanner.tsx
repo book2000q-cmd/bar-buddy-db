@@ -18,6 +18,21 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
     
     const startScanning = async () => {
       try {
+        // Request high-resolution camera constraints first
+        const constraints = {
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 4096, min: 1280 },
+            height: { ideal: 2160, min: 720 }
+          }
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+
         const videoInputDevices = await codeReader.listVideoInputDevices();
         
         if (videoInputDevices.length === 0) {
@@ -33,16 +48,17 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
 
         const selectedDeviceId = backCamera.deviceId;
 
-        // Faster continuous scanning with improved settings
-        codeReader.timeBetweenDecodingAttempts = 100; // Scan every 100ms for speed
+        // Optimized scanning settings for small barcodes
+        codeReader.timeBetweenDecodingAttempts = 50; // Faster scanning (50ms)
+        codeReader.hints?.set(2, true); // Try harder
         
-        codeReader.decodeFromVideoDevice(
+        await codeReader.decodeFromVideoDevice(
           selectedDeviceId,
           videoRef.current!,
           (result, err) => {
             if (result && isScanning) {
               // Play scan sound
-              const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGe58OagSwgOUKzn7bllHAbzd8z0+5RGCE6r5O+5YxUHcazl68hmGQU7j9Hy0XosBS6AzPDdjTwJEWS56umjSwoOTqrl8bZkGgczhsvy03YrBS1+yvDdkDwIE2O48OijSQkOUKrk8LhjHAY1iM7y0HcrBS1+yvDekTsID2O56+qhSwgNUKvm8bhlHQY1iMzy0XYqBS1+yvDekToID2S56+mhSwgMUKvm8bhlHQY1iM3y0HYrBS1/y/DdkDoID2O56+qiSwkNUKrm8bhlHQY1iM3y0HYrBS1/y/DdkDoID2O56+qiSwgMUKvm8bhlHAYzh8vy0nksBS6Ay/DdjjsIEWS56+mjSwkOTqrl8bZkGgczhsvy0nksBS6Ay/DdjjsIEWS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEWS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGg==');
+              const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGe58OagSwgOUKzn7bllHAbzd8z0+5RGCE6r5O+5YxUHcazl68hmGQU7j9Hy0XosBS6AzPDdjTwJEWS56umjSwoOTqrl8bZkGgczhsvy03YrBS1+yvDdkDwIE2O48OijSQkOUKrk8LhjHAY1iM7y0HcrBS1+yvDekTsID2O56+qhSwgNUKvm8bhlHQY1iMzy0XYqBS1+yvDekToID2S56+mhSwgMUKvm8bhlHQY1iM3y0HYrBS1/y/DdkDoID2O56+qiSwkNUKrm8bhlHQY1iM3y0HYrBS1/y/DdkDoID2O56+qiSwgMUKvm8bhlHAYzh8vy0nksBS6Ay/DdjjsIEWS56+mjSwkOTqrl8bZkGgczhsvy0nksBS6Ay/DdjjsIEWS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEWS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGgczhsvy0nksBS6Ay/DdjjwJEGS56+mjSwkOTqrl8bVkGg==');
               audio.play().catch(() => {});
               onScan(result.getText());
               setIsScanning(false);
@@ -53,16 +69,20 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
           }
         );
 
-        // Request high resolution for better accuracy
+        // Apply maximum resolution constraints after stream is active
         if (videoRef.current) {
-          const stream = videoRef.current.srcObject as MediaStream;
-          if (stream) {
-            const track = stream.getVideoTracks()[0];
+          const activeStream = videoRef.current.srcObject as MediaStream;
+          if (activeStream) {
+            const track = activeStream.getVideoTracks()[0];
             const capabilities = track.getCapabilities?.();
             if (capabilities) {
-              track.applyConstraints({
-                advanced: [{ width: 1920, height: 1080 }]
-              }).catch(() => {});
+              const maxWidth = capabilities.width?.max || 1920;
+              const maxHeight = capabilities.height?.max || 1080;
+              
+              await track.applyConstraints({
+                width: { ideal: maxWidth },
+                height: { ideal: maxHeight }
+              }).catch(console.error);
             }
           }
         }
@@ -76,6 +96,10 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
 
     return () => {
       codeReader.reset();
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+      }
     };
   }, [onScan, isScanning]);
 
@@ -123,7 +147,7 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
 
       <div className="p-6 bg-gradient-to-r from-primary/20 to-secondary/20 backdrop-blur-sm">
         <p className="text-white text-center text-sm animate-pulse">
-          วางบาร์โค้ดให้อยู่ในกรอบเพื่อสแกน
+          วางบาร์โค้ดให้อยู่ในกรอบเพื่อสแกน (รองรับบาร์โค้ดขนาดเล็ก)
         </p>
       </div>
     </div>
