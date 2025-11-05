@@ -3,14 +3,53 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
+import { TrendingUp, TrendingDown } from "lucide-react";
 
 const Analytics = () => {
   const [categoryData, setCategoryData] = useState<any[]>([]);
   const [stockData, setStockData] = useState<any[]>([]);
   const [salesData, setSalesData] = useState<any[]>([]);
+  const [totalIncome, setTotalIncome] = useState<number>(0);
+  const [totalExpenses, setTotalExpenses] = useState<number>(0);
 
   useEffect(() => {
     fetchAnalytics();
+
+    // Setup realtime subscriptions
+    const transactionsChannel = supabase
+      .channel('transactions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions'
+        },
+        () => {
+          fetchAnalytics();
+        }
+      )
+      .subscribe();
+
+    const expensesChannel = supabase
+      .channel('expenses-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'expenses'
+        },
+        () => {
+          fetchAnalytics();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(transactionsChannel);
+      supabase.removeChannel(expensesChannel);
+    };
   }, []);
 
   const fetchAnalytics = async () => {
@@ -19,6 +58,10 @@ const Analytics = () => {
       .from("transactions")
       .select("*")
       .order("transaction_date", { ascending: true });
+    const { data: expenses } = await supabase
+      .from("expenses")
+      .select("*")
+      .order("expense_date", { ascending: true });
 
     if (products) {
       // Category distribution
@@ -71,6 +114,18 @@ const Analytics = () => {
       }));
       setSalesData(salesChartData);
     }
+
+    // Calculate total income from transactions
+    if (transactions) {
+      const income = transactions.reduce((sum, t) => sum + Number(t.total_amount), 0);
+      setTotalIncome(income);
+    }
+
+    // Calculate total expenses
+    if (expenses) {
+      const expenseTotal = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+      setTotalExpenses(expenseTotal);
+    }
   };
 
   const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
@@ -83,6 +138,49 @@ const Analytics = () => {
       </header>
 
       <main className="p-4 space-y-4">
+        {/* Income and Expenses Summary */}
+        <div className="grid grid-cols-2 gap-4">
+          <Card className="border-none shadow-md bg-gradient-to-br from-green-500/10 to-green-600/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+                รายรับทั้งหมด
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-green-600">
+                ฿{totalIncome.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-md bg-gradient-to-br from-red-500/10 to-red-600/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <TrendingDown className="w-4 h-4 text-red-600" />
+                รายจ่ายทั้งหมด
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-red-600">
+                ฿{totalExpenses.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Net Profit/Loss */}
+        <Card className="border-none shadow-md">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">กำไรสุทธิ</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className={`text-3xl font-bold ${totalIncome - totalExpenses >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              ฿{(totalIncome - totalExpenses).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </CardContent>
+        </Card>
+
         <Card className="border-none shadow-md">
           <CardHeader>
             <CardTitle>รายรับย้อนหลัง 7 วัน</CardTitle>
