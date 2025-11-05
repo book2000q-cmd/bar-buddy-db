@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader } from "@zxing/library";
-import { Camera, X } from "lucide-react";
+import { Camera, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface BarcodeScannerProps {
@@ -12,6 +12,35 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string>("");
   const [isScanning, setIsScanning] = useState(true);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [maxZoom, setMaxZoom] = useState(3);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Handle zoom control
+  const handleZoom = async (direction: 'in' | 'out') => {
+    if (!streamRef.current) return;
+
+    const track = streamRef.current.getVideoTracks()[0];
+    const capabilities = track.getCapabilities() as any;
+    
+    if (capabilities.zoom) {
+      const currentZoom = (track.getSettings() as any).zoom || 1;
+      const step = 0.5;
+      let newZoom = direction === 'in' ? currentZoom + step : currentZoom - step;
+      
+      // Clamp zoom level
+      newZoom = Math.max(capabilities.zoom.min || 1, Math.min(newZoom, capabilities.zoom.max || 3));
+      
+      try {
+        await track.applyConstraints({
+          advanced: [{ zoom: newZoom } as any]
+        });
+        setZoomLevel(newZoom);
+      } catch (err) {
+        console.error('Zoom error:', err);
+      }
+    }
+  };
 
   useEffect(() => {
     const codeReader = new BrowserMultiFormatReader();
@@ -28,9 +57,23 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
         };
 
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        streamRef.current = stream;
         
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+        }
+
+        // Get zoom capabilities
+        const track = stream.getVideoTracks()[0];
+        const capabilities = track.getCapabilities() as any;
+        if (capabilities.zoom) {
+          setMaxZoom(capabilities.zoom.max || 3);
+          // Start with a moderate zoom for better barcode detection
+          const initialZoom = Math.min(2, capabilities.zoom.max || 2);
+          await track.applyConstraints({
+            advanced: [{ zoom: initialZoom } as any]
+          }).catch(console.error);
+          setZoomLevel(initialZoom);
         }
 
         const videoInputDevices = await codeReader.listVideoInputDevices();
@@ -110,14 +153,37 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
           <Camera className="h-5 w-5" />
           <span className="font-semibold">สแกนบาร์โค้ด</span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="text-white hover:bg-white/20 transition-all"
-        >
-          <X className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleZoom('out')}
+            className="text-white hover:bg-white/20 transition-all"
+            disabled={zoomLevel <= 1}
+          >
+            <ZoomOut className="h-5 w-5" />
+          </Button>
+          <span className="text-white text-sm font-medium min-w-[3rem] text-center">
+            {zoomLevel.toFixed(1)}x
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleZoom('in')}
+            className="text-white hover:bg-white/20 transition-all"
+            disabled={zoomLevel >= maxZoom}
+          >
+            <ZoomIn className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-white hover:bg-white/20 transition-all"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 relative flex items-center justify-center">
@@ -147,7 +213,7 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
 
       <div className="p-6 bg-gradient-to-r from-primary/20 to-secondary/20 backdrop-blur-sm">
         <p className="text-white text-center text-sm animate-pulse">
-          วางบาร์โค้ดให้อยู่ในกรอบเพื่อสแกน (รองรับบาร์โค้ดขนาดเล็ก)
+          วางบาร์โค้ดให้อยู่ในกรอบ ใช้ปุ่มซูมสำหรับบาร์โค้ดขนาดเล็ก
         </p>
       </div>
     </div>
