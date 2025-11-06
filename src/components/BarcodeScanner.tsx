@@ -14,11 +14,12 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
   const [isScanning, setIsScanning] = useState(true);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [maxZoom, setMaxZoom] = useState(3);
+  const [supportsZoom, setSupportsZoom] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
 
   // Handle zoom control
   const handleZoom = async (direction: 'in' | 'out') => {
-    if (!streamRef.current) return;
+    if (!streamRef.current || !supportsZoom) return;
 
     const track = streamRef.current.getVideoTracks()[0];
     const capabilities = track.getCapabilities() as any;
@@ -47,12 +48,12 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
     
     const startScanning = async () => {
       try {
-        // Request high-resolution camera constraints first
+        // Request optimized camera constraints for barcode scanning
         const constraints = {
           video: {
             facingMode: { ideal: "environment" },
-            width: { ideal: 4096, min: 1280 },
-            height: { ideal: 2160, min: 720 }
+            width: { ideal: 1920, min: 1280 },
+            height: { ideal: 1080, min: 720 }
           }
         };
 
@@ -63,17 +64,15 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
           videoRef.current.srcObject = stream;
         }
 
-        // Get zoom capabilities
+        // Check zoom capabilities but don't apply zoom initially
         const track = stream.getVideoTracks()[0];
         const capabilities = track.getCapabilities() as any;
         if (capabilities.zoom) {
+          setSupportsZoom(true);
           setMaxZoom(capabilities.zoom.max || 3);
-          // Start with a moderate zoom for better barcode detection
-          const initialZoom = Math.min(2, capabilities.zoom.max || 2);
-          await track.applyConstraints({
-            advanced: [{ zoom: initialZoom } as any]
-          }).catch(console.error);
-          setZoomLevel(initialZoom);
+          setZoomLevel(capabilities.zoom.min || 1);
+        } else {
+          setSupportsZoom(false);
         }
 
         const videoInputDevices = await codeReader.listVideoInputDevices();
@@ -91,9 +90,8 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
 
         const selectedDeviceId = backCamera.deviceId;
 
-        // Optimized scanning settings for small barcodes
-        codeReader.timeBetweenDecodingAttempts = 50; // Faster scanning (50ms)
-        codeReader.hints?.set(2, true); // Try harder
+        // Optimized scanning settings for better performance
+        codeReader.timeBetweenDecodingAttempts = 100; // Balanced scanning (100ms)
         
         await codeReader.decodeFromVideoDevice(
           selectedDeviceId,
@@ -112,23 +110,6 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
           }
         );
 
-        // Apply maximum resolution constraints after stream is active
-        if (videoRef.current) {
-          const activeStream = videoRef.current.srcObject as MediaStream;
-          if (activeStream) {
-            const track = activeStream.getVideoTracks()[0];
-            const capabilities = track.getCapabilities?.();
-            if (capabilities) {
-              const maxWidth = capabilities.width?.max || 1920;
-              const maxHeight = capabilities.height?.max || 1080;
-              
-              await track.applyConstraints({
-                width: { ideal: maxWidth },
-                height: { ideal: maxHeight }
-              }).catch(console.error);
-            }
-          }
-        }
       } catch (err) {
         console.error(err);
         setError("ไม่สามารถเข้าถึงกล้องได้");
@@ -154,27 +135,31 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
           <span className="font-semibold">สแกนบาร์โค้ด</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleZoom('out')}
-            className="text-white hover:bg-white/20 transition-all"
-            disabled={zoomLevel <= 1}
-          >
-            <ZoomOut className="h-5 w-5" />
-          </Button>
-          <span className="text-white text-sm font-medium min-w-[3rem] text-center">
-            {zoomLevel.toFixed(1)}x
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleZoom('in')}
-            className="text-white hover:bg-white/20 transition-all"
-            disabled={zoomLevel >= maxZoom}
-          >
-            <ZoomIn className="h-5 w-5" />
-          </Button>
+          {supportsZoom && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleZoom('out')}
+                className="text-white hover:bg-white/20 transition-all"
+                disabled={zoomLevel <= 1}
+              >
+                <ZoomOut className="h-5 w-5" />
+              </Button>
+              <span className="text-white text-sm font-medium min-w-[3rem] text-center">
+                {zoomLevel.toFixed(1)}x
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleZoom('in')}
+                className="text-white hover:bg-white/20 transition-all"
+                disabled={zoomLevel >= maxZoom}
+              >
+                <ZoomIn className="h-5 w-5" />
+              </Button>
+            </>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -213,7 +198,10 @@ const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
 
       <div className="p-6 bg-gradient-to-r from-primary/20 to-secondary/20 backdrop-blur-sm">
         <p className="text-white text-center text-sm animate-pulse">
-          วางบาร์โค้ดให้อยู่ในกรอบ ใช้ปุ่มซูมสำหรับบาร์โค้ดขนาดเล็ก
+          {supportsZoom 
+            ? "วางบาร์โค้ดให้อยู่ในกรอบ ใช้ปุ่มซูมสำหรับบาร์โค้ดขนาดเล็ก"
+            : "วางบาร์โค้ดให้อยู่ในกรอบเพื่อสแกน"
+          }
         </p>
       </div>
     </div>
