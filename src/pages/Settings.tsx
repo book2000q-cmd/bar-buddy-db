@@ -1,18 +1,20 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import BottomNav from "@/components/BottomNav";
-import { User, Database, Info, LogOut, Users, FileSpreadsheet, Loader2 } from "lucide-react";
+import { User, Database, Info, LogOut, Users, FileSpreadsheet, Loader2, HelpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { GoogleSheetsSetupGuide } from "@/components/GoogleSheetsSetupGuide";
 
 const Settings = () => {
   const { user, signOut, roles, hasRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = useState(false);
+  const [showSetupGuide, setShowSetupGuide] = useState(false);
 
   const handleSyncToGoogleSheets = async () => {
     setIsSyncing(true);
@@ -105,34 +107,53 @@ const Settings = () => {
             </Card>
 
             <Card className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-orange-500/10 rounded-full">
-                  <FileSpreadsheet className="h-6 w-6 text-orange-500" />
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-orange-500/10 rounded-full flex-shrink-0">
+                    <FileSpreadsheet className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold">Google Sheets Sync</h3>
+                    <p className="text-sm text-muted-foreground">ส่งออกข้อมูลไป Google Sheets อัตโนมัติ</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Auto sync ทุกวันเวลา 23:00 น.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleSyncToGoogleSheets}
+                    disabled={isSyncing}
+                    size="sm"
+                    variant="default"
+                  >
+                    {isSyncing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        กำลัง Sync...
+                      </>
+                    ) : (
+                      'Sync ตอนนี้'
+                    )}
+                  </Button>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold">Google Sheets Sync</h3>
-                  <p className="text-sm text-muted-foreground">ส่งออกข้อมูลไป Google Sheets</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Auto sync ทุกวันเวลา 23:00 น.
-                  </p>
+                
+                <div className="border-t pt-3">
+                  <Button
+                    onClick={() => setShowSetupGuide(true)}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                  >
+                    <HelpCircle className="h-4 w-4 mr-2" />
+                    คู่มือการตั้งค่า Google Sheets
+                  </Button>
                 </div>
-                <Button
-                  onClick={handleSyncToGoogleSheets}
-                  disabled={isSyncing}
-                  size="sm"
-                  variant="outline"
-                >
-                  {isSyncing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      กำลัง Sync...
-                    </>
-                  ) : (
-                    'Sync ตอนนี้'
-                  )}
-                </Button>
               </div>
             </Card>
+
+            <GoogleSheetsSetupGuide
+              open={showSetupGuide}
+              onOpenChange={setShowSetupGuide}
+            />
           </>
         )}
 
