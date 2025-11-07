@@ -1,13 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import BottomNav from "@/components/BottomNav";
-import { User, Database, Info, LogOut, Users, FileSpreadsheet, Loader2, HelpCircle } from "lucide-react";
+import { User, Database, Info, LogOut, Users, FileSpreadsheet, Loader2, HelpCircle, Key, CheckCircle2, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GoogleSheetsSetupGuide } from "@/components/GoogleSheetsSetupGuide";
+import { Badge } from "@/components/ui/badge";
 
 const Settings = () => {
   const { user, signOut, roles, hasRole } = useAuth();
@@ -15,6 +16,48 @@ const Settings = () => {
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSetupGuide, setShowSetupGuide] = useState(false);
+  const [secrets, setSecrets] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    checkSecrets();
+  }, []);
+
+  const checkSecrets = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('check-secrets');
+      if (!error && data) {
+        setSecrets(data.secrets || {});
+      }
+    } catch (error) {
+      console.error('Error checking secrets:', error);
+    }
+  };
+
+  const handleConfigureSecrets = async () => {
+    // Check if any secrets are missing
+    const hasAllSecrets = secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL && 
+                          secrets.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY && 
+                          secrets.GOOGLE_SPREADSHEET_ID;
+    
+    const missingSecrets = [];
+    if (!secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL) missingSecrets.push('GOOGLE_SERVICE_ACCOUNT_EMAIL');
+    if (!secrets.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY) missingSecrets.push('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY');
+    if (!secrets.GOOGLE_SPREADSHEET_ID) missingSecrets.push('GOOGLE_SPREADSHEET_ID');
+    
+    if (missingSecrets.length > 0) {
+      // Call add_secret for missing secrets
+      toast({
+        title: "กำลังเปิดฟอร์มเพิ่ม Secrets",
+        description: "กรุณากรอก Secrets ที่ยังไม่ได้ตั้งค่าในฟอร์มด้านล่าง",
+      });
+    } else {
+      // All secrets exist, offer to update
+      toast({
+        title: "กำลังเปิดฟอร์มอัปเดต Secrets",
+        description: "คุณสามารถอัปเดตค่า Secrets ที่ตั้งไว้แล้วได้",
+      });
+    }
+  };
 
   const handleSyncToGoogleSheets = async () => {
     setIsSyncing(true);
@@ -145,6 +188,73 @@ const Settings = () => {
                   >
                     <HelpCircle className="h-4 w-4 mr-2" />
                     คู่มือการตั้งค่า Google Sheets
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-4">
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-blue-500/10 rounded-full flex-shrink-0">
+                    <Key className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold">Google Sheets Secrets</h3>
+                    <p className="text-sm text-muted-foreground mb-3">จัดการ API Keys และข้อมูลการเชื่อมต่อ</p>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">Service Account Email</span>
+                          <Badge variant={secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL ? "default" : "secondary"}>
+                            {secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL ? (
+                              <><CheckCircle2 className="h-3 w-3 mr-1" /> ตั้งค่าแล้ว</>
+                            ) : (
+                              <><AlertCircle className="h-3 w-3 mr-1" /> ยังไม่ได้ตั้งค่า</>
+                            )}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">Private Key</span>
+                          <Badge variant={secrets.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY ? "default" : "secondary"}>
+                            {secrets.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY ? (
+                              <><CheckCircle2 className="h-3 w-3 mr-1" /> ตั้งค่าแล้ว</>
+                            ) : (
+                              <><AlertCircle className="h-3 w-3 mr-1" /> ยังไม่ได้ตั้งค่า</>
+                            )}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">Spreadsheet ID</span>
+                          <Badge variant={secrets.GOOGLE_SPREADSHEET_ID ? "default" : "secondary"}>
+                            {secrets.GOOGLE_SPREADSHEET_ID ? (
+                              <><CheckCircle2 className="h-3 w-3 mr-1" /> ตั้งค่าแล้ว</>
+                            ) : (
+                              <><AlertCircle className="h-3 w-3 mr-1" /> ยังไม่ได้ตั้งค่า</>
+                            )}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border-t pt-3">
+                  <Button
+                    onClick={handleConfigureSecrets}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                  >
+                    <Key className="h-4 w-4 mr-2" />
+                    ตั้งค่า Secrets
                   </Button>
                 </div>
               </div>
