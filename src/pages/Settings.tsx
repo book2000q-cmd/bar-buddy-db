@@ -34,29 +34,18 @@ const Settings = () => {
   };
 
   const handleConfigureSecrets = async () => {
-    // Check if any secrets are missing
+    await checkSecrets();
+    
     const hasAllSecrets = secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL && 
                           secrets.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY && 
                           secrets.GOOGLE_SPREADSHEET_ID;
     
-    const missingSecrets = [];
-    if (!secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL) missingSecrets.push('GOOGLE_SERVICE_ACCOUNT_EMAIL');
-    if (!secrets.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY) missingSecrets.push('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY');
-    if (!secrets.GOOGLE_SPREADSHEET_ID) missingSecrets.push('GOOGLE_SPREADSHEET_ID');
-    
-    if (missingSecrets.length > 0) {
-      // Call add_secret for missing secrets
-      toast({
-        title: "กำลังเปิดฟอร์มเพิ่ม Secrets",
-        description: "กรุณากรอก Secrets ที่ยังไม่ได้ตั้งค่าในฟอร์มด้านล่าง",
-      });
-    } else {
-      // All secrets exist, offer to update
-      toast({
-        title: "กำลังเปิดฟอร์มอัปเดต Secrets",
-        description: "คุณสามารถอัปเดตค่า Secrets ที่ตั้งไว้แล้วได้",
-      });
-    }
+    toast({
+      title: "ตรวจสอบสถานะ Secrets",
+      description: hasAllSecrets 
+        ? "Secrets ทั้งหมดได้รับการตั้งค่าเรียบร้อยแล้ว หากต้องการแก้ไข กรุณาติดต่อผู้ดูแลระบบ" 
+        : "กรุณาตั้งค่า Secrets ที่ยังขาดอยู่ผ่านหน้าจัดการ Backend",
+    });
   };
 
   const handleSyncToGoogleSheets = async () => {
@@ -253,8 +242,8 @@ const Settings = () => {
                     size="sm"
                     className="w-full"
                   >
-                    <Key className="h-4 w-4 mr-2" />
-                    ตั้งค่า Secrets
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    ตรวจสอบสถานะ Secrets
                   </Button>
                 </div>
               </div>
