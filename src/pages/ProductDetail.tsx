@@ -25,10 +25,13 @@ const ProductDetail = () => {
     name: "",
     description: "",
     price: "",
+    cost_price: "",
     stock_quantity: "",
     category: "",
     image_url: "",
   });
+  
+  const [originalStockQuantity, setOriginalStockQuantity] = useState(0);
 
   useEffect(() => {
     if (!isNew && id) {
@@ -49,10 +52,12 @@ const ProductDetail = () => {
         name: data.name,
         description: data.description || "",
         price: data.price?.toString() || "",
+        cost_price: data.cost_price?.toString() || "",
         stock_quantity: data.stock_quantity.toString(),
         category: data.category || "",
         image_url: data.image_url || "",
       });
+      setOriginalStockQuantity(data.stock_quantity);
     }
   };
 
@@ -64,6 +69,7 @@ const ProductDetail = () => {
         name: formData.name,
         description: formData.description || null,
         price: formData.price ? parseFloat(formData.price) : 0,
+        cost_price: formData.cost_price ? parseFloat(formData.cost_price) : 0,
         stock_quantity: parseInt(formData.stock_quantity) || 0,
         category: formData.category || null,
         image_url: formData.image_url || null,
@@ -78,29 +84,68 @@ const ProductDetail = () => {
         name: validatedData.name,
         description: validatedData.description,
         price: validatedData.price,
+        cost_price: validatedData.cost_price,
         stock_quantity: validatedData.stock_quantity,
         category: validatedData.category,
         image_url: validatedData.image_url,
       };
 
       if (isNew) {
-        const { error } = await supabase.from("products").insert([dbData]);
-        if (error) {
-          console.error('Insert error:', error);
+        // Insert new product
+        const { error: insertError } = await supabase.from("products").insert([dbData]);
+        if (insertError) {
+          console.error('Insert error:', insertError);
           toast.error("ไม่สามารถเพิ่มสินค้าได้");
           return;
         }
-        toast.success("เพิ่มสินค้าสำเร็จ");
+
+        // Record expense for new product (cost_price * stock_quantity)
+        if (validatedData.cost_price && validatedData.cost_price > 0 && validatedData.stock_quantity > 0) {
+          const expenseAmount = validatedData.cost_price * validatedData.stock_quantity;
+          const { error: expenseError } = await supabase.from("expenses").insert([{
+            description: `นำเข้าสินค้า: ${validatedData.name}`,
+            amount: expenseAmount,
+            category: "สินค้า",
+            expense_date: new Date().toISOString()
+          }]);
+          
+          if (expenseError) {
+            console.error('Expense recording error:', expenseError);
+            toast.warning("บันทึกสินค้าสำเร็จ แต่ไม่สามารถบันทึกรายจ่ายได้");
+          }
+        }
+
+        toast.success("เพิ่มสินค้าและบันทึกรายจ่ายสำเร็จ");
       } else {
-        const { error } = await supabase
+        // Update existing product
+        const { error: updateError } = await supabase
           .from("products")
           .update(dbData)
           .eq("id", id);
-        if (error) {
-          console.error('Update error:', error);
+        
+        if (updateError) {
+          console.error('Update error:', updateError);
           toast.error("ไม่สามารถบันทึกข้อมูลได้");
           return;
         }
+
+        // If stock quantity increased, record expense for additional stock
+        const stockDifference = validatedData.stock_quantity - originalStockQuantity;
+        if (validatedData.cost_price && validatedData.cost_price > 0 && stockDifference > 0) {
+          const expenseAmount = validatedData.cost_price * stockDifference;
+          const { error: expenseError } = await supabase.from("expenses").insert([{
+            description: `เพิ่มสต็อกสินค้า: ${validatedData.name} (+${stockDifference})`,
+            amount: expenseAmount,
+            category: "สินค้า",
+            expense_date: new Date().toISOString()
+          }]);
+          
+          if (expenseError) {
+            console.error('Expense recording error:', expenseError);
+            toast.warning("บันทึกสินค้าสำเร็จ แต่ไม่สามารถบันทึกรายจ่ายได้");
+          }
+        }
+
         toast.success("บันทึกข้อมูลสำเร็จ");
       }
 
@@ -231,7 +276,7 @@ const ProductDetail = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="price">ราคา (฿)</Label>
+                <Label htmlFor="price">ราคาขาย (฿)</Label>
                 <Input
                   id="price"
                   type="number"
@@ -248,20 +293,37 @@ const ProductDetail = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="stock">จำนวนคงเหลือ</Label>
+                <Label htmlFor="cost_price">ราคาทุน (฿)</Label>
                 <Input
-                  id="stock"
+                  id="cost_price"
                   type="number"
-                  value={formData.stock_quantity}
+                  value={formData.cost_price}
                   onChange={(e) =>
-                    setFormData({ ...formData, stock_quantity: e.target.value })
+                    setFormData({ ...formData, cost_price: e.target.value })
                   }
-                  placeholder="0"
+                  placeholder="0.00"
                   disabled={!canModify}
                   min="0"
-                  max="100000"
+                  max="1000000"
+                  step="0.01"
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="stock">จำนวนคงเหลือ</Label>
+              <Input
+                id="stock"
+                type="number"
+                value={formData.stock_quantity}
+                onChange={(e) =>
+                  setFormData({ ...formData, stock_quantity: e.target.value })
+                }
+                placeholder="0"
+                disabled={!canModify}
+                min="0"
+                max="100000"
+              />
             </div>
 
             <div className="space-y-2">
