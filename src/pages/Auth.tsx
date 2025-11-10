@@ -58,7 +58,7 @@ const Auth = () => {
               <img src={collegeLogo} alt="Logo" className="w-full h-full object-cover object-center" />
             </div>
           </div>
-          <CardTitle className="text-2xl text-center">ระบบจัดการสต็อก</CardTitle>
+          <CardTitle className="text-2xl text-center">ระบบบริหารจัดการร้านขายของชำ</CardTitle>
           <CardDescription className="text-center">
             วิทยาลัยเทคนิควังน้ำเย็น
           </CardDescription>
